@@ -5,7 +5,7 @@ use crate::util::event::{Event, Events};
 use std::error::Error;
 use std::io::Write;
 use std::{collections::VecDeque, io};
-use termion::{event::Key, raw::IntoRawMode};
+use termion::{event::Key, raw::IntoRawMode, screen::AlternateScreen};
 use tui::{
     backend::TermionBackend,
     layout::{Constraint, Direction, Layout},
@@ -15,6 +15,7 @@ use tui::{
 
 fn main() -> Result<(), Box<dyn Error>> {
     let stdout = io::stdout().into_raw_mode()?;
+    let stdout = AlternateScreen::from(stdout);
     let backend = TermionBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
