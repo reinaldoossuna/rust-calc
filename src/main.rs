@@ -1,78 +1,91 @@
-use std::io::Write;
+mod app;
+#[allow(dead_code)]
+mod util;
+
+use crate::util::event::{Event, Events};
+use app::App;
+use std::error::Error;
 use std::{collections::VecDeque, io};
+use termion::{event::Key, raw::IntoRawMode, screen::AlternateScreen};
+use tui::{
+    backend::TermionBackend,
+    layout::{Constraint, Direction, Layout},
+    style::{Color, Style},
+    text::{Span, Spans, Text},
+    widgets::{Block, Borders, List, ListItem, Paragraph},
+    Terminal,
+};
+use unicode_width::UnicodeWidthStr;
 
-fn main() {
-    calc_loop();
-}
+fn main() -> Result<(), Box<dyn Error>> {
+    let stdout = io::stdout().into_raw_mode()?;
+    let stdout = AlternateScreen::from(stdout);
+    let backend = TermionBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
 
-fn calc_loop() {
-    let mut queue: VecDeque<f32> = VecDeque::new();
+    let events = Events::new();
 
-    print!("> ");
-    io::stdout().flush().unwrap();
+    let mut app = App::default();
 
     loop {
-        let expr = read_expr();
-        for item in expr
-            .trim() // remove white spaces in the end begin
-            .split_whitespace()
-            .map(|str| parse(str))
-        // parse to Number or Operation
-        {
-            match item {
-                CalculatorItem::Number(n) => queue.push_back(n),
-                CalculatorItem::Op(op) => do_math(&mut queue, op),
+        terminal.draw(|f| {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(2)
+                .constraints(
+                    [
+                        Constraint::Percentage(10),
+                        Constraint::Percentage(80),
+                        Constraint::Percentage(10),
+                    ]
+                    .as_ref(),
+                )
+                .split(f.size());
+
+            let mut text = Text::from("--- Calc ---");
+            text.patch_style(Style::default());
+            let header = Paragraph::new(text);
+            f.render_widget(header, chunks[0]);
+
+            let list: VecDeque<ListItem> = app
+                .list
+                .iter()
+                .enumerate()
+                .map(|(i, m)| {
+                    let content = vec![Spans::from(Span::raw(format!("{}: {}", i, m)))];
+                    ListItem::new(content)
+                })
+                .collect();
+
+            let list = List::new(list).block(Block::default().borders(Borders::NONE).title("List"));
+            f.render_widget(list, chunks[1]);
+
+            let input = Paragraph::new(app.input.as_ref())
+                .style(Style::default().fg(Color::Yellow))
+                .block(Block::default().borders(Borders::ALL));
+            f.render_widget(input, chunks[2]);
+
+            // make the cursor visible
+            f.set_cursor(chunks[2].x + app.input.width() as u16 + 1, chunks[2].y + 1);
+        })?;
+
+        if let Event::Input(input) = events.next()? {
+            match input {
+                Key::Char('\n') => {
+                    app.read_input();
+                }
+                Key::Char(c) => {
+                    app.input.push(c);
+                }
+                Key::Backspace => {
+                    app.input.pop();
+                }
+                Key::Ctrl('c') => {
+                    break;
+                }
+                _ => {}
             }
         }
     }
-}
-
-fn read_expr() -> String {
-    let mut expr = String::new();
-
-    io::stdin()
-        .read_line(&mut expr)
-        .expect("failed to read input");
-
-    expr
-}
-
-enum Operation {
-    Sum,
-    Minus,
-    Mult,
-    Div,
-}
-
-enum CalculatorItem {
-    Number(f32),
-    Op(Operation),
-}
-
-fn parse<'a>(expr: &'a str) -> CalculatorItem {
-    match expr {
-        "+" => CalculatorItem::Op(Operation::Sum),
-        "-" => CalculatorItem::Op(Operation::Minus),
-        "*" => CalculatorItem::Op(Operation::Mult),
-        "/" => CalculatorItem::Op(Operation::Div),
-        _ => {
-            let num = expr.parse::<f32>().expect("not able to parse input");
-            CalculatorItem::Number(num)
-        }
-    }
-}
-
-fn do_math(q: &mut VecDeque<f32>, op: Operation) {
-    assert!(q.len() > 1);
-    let n1 = q.pop_front().unwrap();
-    let n2 = q.pop_front().unwrap();
-
-    let result = match op {
-        Operation::Sum => n1 + n2,
-        Operation::Minus => n1 - n2,
-        Operation::Mult => n1 * n2,
-        Operation::Div => n1 / n2,
-    };
-    println!("= {}", result);
-    q.push_back(result);
+    Ok(())
 }
