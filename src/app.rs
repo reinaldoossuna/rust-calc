@@ -2,7 +2,41 @@ use std::collections::VecDeque;
 
 pub struct App {
     pub input: String,
-    pub list: VecDeque<String>,
+    pub list: VecDeque<f32>,
+}
+
+impl App {
+    pub fn read_input(&mut self) {
+        let itens: Vec<CalculatorItem> = self
+            .input
+            .as_str()
+            .trim() // remove white spaces in the end begin
+            .split_whitespace()
+            .map(|str| parse(str))
+            .collect();
+        // parse to Number or Operation
+        self.input.clear();
+        for item in itens {
+            match item {
+                CalculatorItem::Number(n) => self.list.push_back(n),
+                CalculatorItem::Op(op) => self.do_math(op),
+            }
+        }
+    }
+
+    fn do_math(&mut self, op: Operation) {
+        assert!(self.list.len() > 1);
+        let n1 = self.list.pop_front().unwrap();
+        let n2 = self.list.pop_front().unwrap();
+
+        let result = match op {
+            Operation::Sum => n1 + n2,
+            Operation::Minus => n1 - n2,
+            Operation::Mult => n1 * n2,
+            Operation::Div => n1 / n2,
+        };
+        self.list.push_back(result);
+    }
 }
 
 impl Default for App {
@@ -12,40 +46,6 @@ impl Default for App {
             list: VecDeque::new(),
         }
     }
-}
-
-#[allow(dead_code)]
-fn calc_loop() {
-    let mut queue: VecDeque<f32> = VecDeque::new();
-
-    print!("> ");
-    io::stdout().flush().unwrap();
-
-    loop {
-        let expr = read_expr();
-        for item in expr
-            .trim() // remove white spaces in the end begin
-            .split_whitespace()
-            .map(|str| parse(str))
-        // parse to Number or Operation
-        {
-            match item {
-                CalculatorItem::Number(n) => queue.push_back(n),
-                CalculatorItem::Op(op) => do_math(&mut queue, op),
-            }
-        }
-    }
-}
-
-#[allow(dead_code)]
-fn read_expr() -> String {
-    let mut expr = String::new();
-
-    io::stdin()
-        .read_line(&mut expr)
-        .expect("failed to read input");
-
-    expr
 }
 
 enum Operation {
@@ -71,19 +71,4 @@ fn parse<'a>(expr: &'a str) -> CalculatorItem {
             CalculatorItem::Number(num)
         }
     }
-}
-
-fn do_math(q: &mut VecDeque<f32>, op: Operation) {
-    assert!(q.len() > 1);
-    let n1 = q.pop_front().unwrap();
-    let n2 = q.pop_front().unwrap();
-
-    let result = match op {
-        Operation::Sum => n1 + n2,
-        Operation::Minus => n1 - n2,
-        Operation::Mult => n1 * n2,
-        Operation::Div => n1 / n2,
-    };
-    println!("= {}", result);
-    q.push_back(result);
 }
