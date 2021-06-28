@@ -1,0 +1,18 @@
+* Calculator
+
+Simple project to practice rustlang.
+I using reverse Polish(postfix notation) notation here .
+
+#+begin_src
+2 3 +
+#+end_src
+
+#+attr_html: :width 500px
+[[./1624911688.png]]
+
+* TODOs:
+- [ ] More operations
+- [ ] Handle operations w/o press enter
+- [ ] Layout is to big
+- [ ] Pick items from the list
+- [ ] History
