@@ -25,17 +25,21 @@ impl App {
     }
 
     fn do_math(&mut self, op: Operation) {
-        assert!(self.list.len() > 1);
-        let n1 = self.list.pop_front().unwrap();
-        let n2 = self.list.pop_front().unwrap();
-
-        let result = match op {
-            Operation::Sum => n1 + n2,
-            Operation::Minus => n1 - n2,
-            Operation::Mult => n1 * n2,
-            Operation::Div => n1 / n2,
-        };
-        self.list.push_back(result);
+        match (self.list.pop_back(), self.list.pop_back()) {
+            (Some(n1), Some(n2)) => {
+                let result = match op {
+                    Operation::Sum => n1 + n2,
+                    Operation::Minus => n1 - n2,
+                    Operation::Mult => n1 * n2,
+                    Operation::Div => n1 / n2,
+                };
+                self.list.push_back(result);
+            }
+            (Some(n1), None) => {
+                self.list.push_back(n1);
+            }
+            (_, _) => {}
+        }
     }
 }
 
