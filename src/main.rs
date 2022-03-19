@@ -74,8 +74,19 @@ fn main() -> Result<(), Box<dyn Error>> {
                 Key::Char('\n') => {
                     app.read_input();
                 }
-                Key::Char(c) => {
+                Key::Char(c) if (c.is_numeric() || c.is_whitespace()) => {
                     app.input.push(c);
+                }
+                Key::Char(c) if (c == '+' || c == '-' || c == '*' || c == '/') => {
+                    app.input.push(c);
+                    app.read_input();
+                }
+                Key::Char(c) if c == 'd' => {
+                    app.list.pop_back();
+                }
+
+                Key::Char(c) if c == 'q' => {
+                    break;
                 }
                 Key::Backspace => {
                     app.input.pop();
